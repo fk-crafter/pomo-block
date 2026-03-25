@@ -1,7 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { StatusBar, Text, TouchableOpacity, View } from "react-native";
+import {
+  LayoutAnimation,
+  Platform,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View,
+} from "react-native";
 import "../global.css";
+
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const FOCUS_TIME_SECONDS = 25 * 60;
 
@@ -39,12 +54,23 @@ export default function PomodoroScreen() {
       .padStart(2, "0")}`;
   };
 
-  const blockedApps = [
-    { name: "logo-whatsapp", color: "#25D366" },
-    { name: "logo-instagram", color: "#E4405F" },
-    { name: "logo-youtube", color: "#FF0000" },
-    { name: "logo-reddit", color: "#FF4500" },
-  ];
+  const [isLocked, setIsLocked] = useState(false);
+  const [blockedApps, setBlockedApps] = useState([
+    { name: "logo-whatsapp", color: "#25D366", isBlocked: false },
+    { name: "logo-instagram", color: "#E4405F", isBlocked: false },
+    { name: "logo-youtube", color: "#FF0000", isBlocked: false },
+    { name: "logo-reddit", color: "#FF4500", isBlocked: false },
+  ]);
+
+  const toggleAppBlock = (appName: string) => {
+    if (isLocked) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setBlockedApps(
+      blockedApps.map((app) =>
+        app.name === appName ? { ...app, isBlocked: !app.isBlocked } : app,
+      ),
+    );
+  };
 
   return (
     <View className="flex-1 bg-[#121212] items-center justify-around p-8">
@@ -71,19 +97,41 @@ export default function PomodoroScreen() {
           {isActive ? "Mettre en Pause" : "Lancer le mode Focus"}
         </Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setIsLocked(!isLocked);
+        }}
+        className="bg-red-600 w-full max-w-xs rounded-full py-4 shadow-lg shadow-red-600/50"
+      >
+        <Text className="text-white text-center text-xl font-bold">
+          {isLocked ? "Déverrouiller les Apps" : "Verrouiller les Apps"}
+        </Text>
+      </TouchableOpacity>
 
       <View className="items-center w-full">
         <Text className="text-gray-500 text-base mb-4">
           Applications bloquées pendant la session
         </Text>
+        {isLocked && (
+          <Text className="text-red-500 text-sm mt-2">
+            Les applications sont verrouillées
+          </Text>
+        )}
         <View className="flex-row justify-center space-x-6">
           {blockedApps.map((app) => (
-            <View
+            <TouchableOpacity
               key={app.name}
-              className="w-14 h-14 bg-gray-800 rounded-2xl items-center justify-center"
+              onPress={() => toggleAppBlock(app.name)}
+              className={`w-14 h-14 bg-gray-800 rounded-2xl items-center justify-center ${
+                app.isBlocked ? "opacity-30" : ""
+              }`}
+              style={{
+                transform: [{ scale: app.isBlocked ? 0.8 : 1 }],
+              }}
             >
               <Ionicons name={app.name as any} size={32} color={app.color} />
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </View>
