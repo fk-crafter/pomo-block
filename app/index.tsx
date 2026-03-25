@@ -23,6 +23,12 @@ const FOCUS_TIME_SECONDS = 25 * 60;
 export default function PomodoroScreen() {
   const [time, setTime] = useState(FOCUS_TIME_SECONDS);
   const [isActive, setIsActive] = useState(false);
+  const [blockedApps, setBlockedApps] = useState([
+    { name: "logo-whatsapp", color: "#25D366", isBlocked: true },
+    { name: "logo-instagram", color: "#E4405F", isBlocked: true },
+    { name: "logo-youtube", color: "#FF0000", isBlocked: false },
+    { name: "logo-reddit", color: "#FF4500", isBlocked: false },
+  ]);
 
   useEffect(() => {
     let interval: any = null;
@@ -34,16 +40,23 @@ export default function PomodoroScreen() {
       setIsActive(false);
       setTime(FOCUS_TIME_SECONDS);
     }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
+    return () => clearInterval(interval);
   }, [isActive, time]);
 
   const toggleTimer = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsActive(!isActive);
+  };
+
+  const toggleAppBlock = (appName: string) => {
+    if (isActive) return;
+
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setBlockedApps((prev) =>
+      prev.map((app) =>
+        app.name === appName ? { ...app, isBlocked: !app.isBlocked } : app,
+      ),
+    );
   };
 
   const formatTime = (seconds: number) => {
@@ -54,36 +67,24 @@ export default function PomodoroScreen() {
       .padStart(2, "0")}`;
   };
 
-  const [isLocked, setIsLocked] = useState(false);
-  const [blockedApps, setBlockedApps] = useState([
-    { name: "logo-whatsapp", color: "#25D366", isBlocked: false },
-    { name: "logo-instagram", color: "#E4405F", isBlocked: false },
-    { name: "logo-youtube", color: "#FF0000", isBlocked: false },
-    { name: "logo-reddit", color: "#FF4500", isBlocked: false },
-  ]);
-
-  const toggleAppBlock = (appName: string) => {
-    if (isLocked) return;
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setBlockedApps(
-      blockedApps.map((app) =>
-        app.name === appName ? { ...app, isBlocked: !app.isBlocked } : app,
-      ),
-    );
-  };
-
   return (
     <View className="flex-1 bg-[#121212] items-center justify-around p-8">
       <StatusBar barStyle="light-content" />
 
       <View className="items-center">
-        <Text className="text-white font-bold text-2xl">Mode Focus</Text>
+        <Text className="text-white font-bold text-2xl">
+          {isActive ? "Focus en cours..." : "Prêt à travailler ?"}
+        </Text>
         <Text className="text-gray-400 text-sm">
-          Restez concentré sur votre tâche
+          {isActive
+            ? "Ne quittez pas l'application"
+            : "Choisissez vos apps à bloquer"}
         </Text>
       </View>
 
-      <View className="w-64 h-64 bg-gray-800/50 rounded-full items-center justify-center border-4 border-gray-700">
+      <View
+        className={`w-64 h-64 rounded-full items-center justify-center border-4 ${isActive ? "border-blue-500 bg-blue-500/5" : "border-gray-700 bg-gray-800/50"}`}
+      >
         <Text className="text-6xl font-thin text-white tracking-widest">
           {formatTime(time)}
         </Text>
@@ -91,60 +92,47 @@ export default function PomodoroScreen() {
 
       <TouchableOpacity
         onPress={toggleTimer}
-        className="bg-blue-600 w-full max-w-xs rounded-full py-4 shadow-lg shadow-blue-600/50"
+        className={`${isActive ? "bg-red-500/20 border border-red-500" : "bg-blue-600"} w-full max-w-xs rounded-2xl py-4 shadow-lg`}
       >
-        <Text className="text-white text-center text-xl font-bold">
-          {isActive ? "Mettre en Pause" : "Lancer le mode Focus"}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setIsLocked(!isLocked);
-        }}
-        className="bg-red-600 w-full max-w-xs rounded-full py-4 shadow-lg shadow-red-600/50"
-      >
-        <Text className="text-white text-center text-xl font-bold">
-          {isLocked ? "Déverrouiller les Apps" : "Verrouiller les Apps"}
+        <Text
+          className={`${isActive ? "text-red-500" : "text-white"} text-center text-xl font-bold`}
+        >
+          {isActive ? "Abandonner la session" : "Démarrer le Focus"}
         </Text>
       </TouchableOpacity>
 
       <View className="items-center w-full">
-        <Text className="text-gray-500 text-base mb-4">
-          Applications bloquées pendant la session
+        <Text className="text-gray-500 text-sm mb-6 uppercase tracking-widest">
+          {isActive
+            ? "🔒 Applications verrouillées"
+            : "Sélectionnez les distractions"}
         </Text>
-        {isLocked && (
-          <Text className="text-red-500 text-sm mt-2">
-            Les applications sont verrouillées
-          </Text>
-        )}
+
         <View className="flex-row justify-center space-x-6">
           {blockedApps.map((app) => (
             <TouchableOpacity
               key={app.name}
+              disabled={isActive}
               onPress={() => toggleAppBlock(app.name)}
-              className={`w-14 h-14 bg-gray-800 rounded-2xl items-center justify-center ${
-                app.isBlocked ? "opacity-30" : ""
+              className={`w-14 h-14 bg-gray-800 rounded-2xl items-center justify-center border-2 ${
+                app.isBlocked
+                  ? "border-blue-500"
+                  : "border-transparent opacity-40"
               }`}
-              style={{
-                transform: [{ scale: app.isBlocked ? 0.8 : 1 }],
-              }}
             >
-              <Ionicons name={app.name as any} size={32} color={app.color} />
+              <Ionicons
+                name={app.name as any}
+                size={28}
+                color={app.isBlocked ? app.color : "#666"}
+              />
+              {isActive && app.isBlocked && (
+                <View className="absolute -top-1 -right-1 bg-blue-500 rounded-full">
+                  <Ionicons name="lock-closed" size={12} color="white" />
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
-      </View>
-
-      <View className="flex-row items-center opacity-60">
-        <Ionicons
-          name="notifications-off-circle-outline"
-          size={16}
-          color="gray"
-        />
-        <Text className="text-gray-400 text-sm ml-2">
-          Notifications en pause. Restez concentré.
-        </Text>
       </View>
     </View>
   );
