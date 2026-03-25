@@ -1,60 +1,102 @@
-import { useRouter } from "expo-router";
-import React from "react";
-import { ImageBackground, Text, TouchableOpacity, View } from "react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import { StatusBar, Text, TouchableOpacity, View } from "react-native";
 import "../global.css";
 
-export default function LandingScreen() {
-  const router = useRouter();
+const FOCUS_TIME_SECONDS = 25 * 60;
+
+export default function PomodoroScreen() {
+  const [time, setTime] = useState(FOCUS_TIME_SECONDS);
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (isActive && time > 0) {
+      interval = setInterval(() => {
+        setTime((prevTime) => prevTime - 1);
+      }, 1000);
+    } else if (time === 0) {
+      setIsActive(false);
+      setTime(FOCUS_TIME_SECONDS);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isActive, time]);
+
+  const toggleTimer = () => {
+    setIsActive(!isActive);
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  const blockedApps = [
+    { name: "logo-whatsapp", color: "#25D366" },
+    { name: "logo-instagram", color: "#E4405F" },
+    { name: "logo-youtube", color: "#FF0000" },
+    { name: "logo-reddit", color: "#FF4500" },
+  ];
 
   return (
-    <View className="flex-1 bg-black">
-      <ImageBackground
-        source={{ uri: "https://via.placeholder.com/400x800" }}
-        className="absolute w-full h-full"
-        imageStyle={{ resizeMode: "cover", opacity: 0.15 }}
-      />
+    <View className="flex-1 bg-[#121212] items-center justify-around p-8">
+      <StatusBar barStyle="light-content" />
 
-      <View className="flex-1 items-center justify-between px-6 py-16">
-        <Animated.View entering={FadeInDown.duration(500)} className="mt-10">
-          <View className="w-20 h-20 rounded-full bg-white/20 items-center justify-center">
-            <Text className="text-2xl">👋🏼</Text>
-          </View>
-        </Animated.View>
+      <View className="items-center">
+        <Text className="text-white font-bold text-2xl">Mode Focus</Text>
+        <Text className="text-gray-400 text-sm">
+          Restez concentré sur votre tâche
+        </Text>
+      </View>
 
-        <Animated.View
-          entering={FadeInUp.delay(150).duration(500)}
-          className="items-center space-y-4"
-        >
-          <Text className="text-3xl font-bold text-white text-center">
-            Welcome to Boilerplate
-          </Text>
-          <Text className="text-sm text-gray-300 text-center max-w-xs">
-            The best way to start your new React Native project with Expo &
-            NativeWind.
-          </Text>
-        </Animated.View>
+      <View className="w-64 h-64 bg-gray-800/50 rounded-full items-center justify-center border-4 border-gray-700">
+        <Text className="text-6xl font-thin text-white tracking-widest">
+          {formatTime(time)}
+        </Text>
+      </View>
 
-        <Animated.View
-          entering={FadeInUp.delay(300).duration(500)}
-          className="w-full max-w-sm space-y-4 gap-2"
-        >
-          <TouchableOpacity
-            onPress={() => router.push("/(auth)/register")}
-            className="w-full py-4 rounded-full bg-white flex-row justify-center items-center"
-          >
-            <Text className="text-black font-semibold text-base">
-              Get Started
-            </Text>
-          </TouchableOpacity>
+      <TouchableOpacity
+        onPress={toggleTimer}
+        className="bg-blue-600 w-full max-w-xs rounded-full py-4 shadow-lg shadow-blue-600/50"
+      >
+        <Text className="text-white text-center text-xl font-bold">
+          {isActive ? "Mettre en Pause" : "Lancer le mode Focus"}
+        </Text>
+      </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-            <Text className="text-gray-300 text-center mt-2">
-              Already have an account?{" "}
-              <Text className="text-white underline font-bold">Log in</Text>
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
+      <View className="items-center w-full">
+        <Text className="text-gray-500 text-base mb-4">
+          Applications bloquées pendant la session
+        </Text>
+        <View className="flex-row justify-center space-x-6">
+          {blockedApps.map((app) => (
+            <View
+              key={app.name}
+              className="w-14 h-14 bg-gray-800 rounded-2xl items-center justify-center"
+            >
+              <Ionicons name={app.name as any} size={32} color={app.color} />
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View className="flex-row items-center opacity-60">
+        <Ionicons
+          name="notifications-off-circle-outline"
+          size={16}
+          color="gray"
+        />
+        <Text className="text-gray-400 text-sm ml-2">
+          Notifications en pause. Restez concentré.
+        </Text>
       </View>
     </View>
   );
